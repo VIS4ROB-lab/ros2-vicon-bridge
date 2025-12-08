@@ -1,6 +1,8 @@
 #include "vicon_bridge/vicon_bridge.hpp"
-#include "vicon_bridge/adapt.hpp"
+
 #include <unistd.h>
+
+#include "vicon_bridge/adapt.hpp"
 
 namespace vicon_bridge {
 
@@ -9,7 +11,6 @@ using namespace ViconDataStreamSDK::CPP;
 
 ViconBridge::ViconBridge()
     : Node("vicon_bridge"), start_time_(this->get_clock()->now()) {
-
   get_parameters();
 
   // initialize the tf broadcaster
@@ -27,8 +28,8 @@ ViconBridge::ViconBridge()
   updater_ptr_ = std::make_shared<diagnostic_updater::Updater>(this);
   updater_ptr_->setHardwareID("vicon");
   // auto diagnostics_param =
-  // diagnostic_updater::FrequencyStatusParam(&update_rate_hz_, &update_rate_hz_,
-  // tolerance_, window_);
+  // diagnostic_updater::FrequencyStatusParam(&update_rate_hz_,
+  // &update_rate_hz_, tolerance_, window_);
   auto diagnostics_param = diagnostic_updater::FrequencyStatusParam(
       &expected_rate_hz_, &expected_rate_hz_);
   pub_freq_ptr_ =
@@ -42,7 +43,6 @@ ViconBridge::ViconBridge()
 }
 
 void ViconBridge::get_parameters() {
-
   host_name_ = this->declare_parameter<std::string>("host_name", host_name_);
   update_rate_hz_ =
       this->declare_parameter<double>("update_rate_hz", update_rate_hz_);
@@ -63,7 +63,6 @@ void ViconBridge::get_parameters() {
 }
 
 bool ViconBridge::init_vicon() {
-
   Result::Enum result(Result::Unknown);
 
   // connect
@@ -96,7 +95,7 @@ bool ViconBridge::init_vicon() {
 
   // setup axis mode
   client_.SetAxisMapping(Direction::Forward, Direction::Left,
-                         Direction::Up); // 'Z-up'
+                         Direction::Up);  // 'Z-up'
   Output_GetAxisMapping _Output_GetAxisMapping = client_.GetAxisMapping();
 
   RCLCPP_INFO_STREAM(get_logger(),
@@ -129,15 +128,14 @@ bool ViconBridge::init_vicon() {
 
 void ViconBridge::create_segment_thread(const std::string subject_name,
                                         const std::string segment_name) {
-
   RCLCPP_INFO(get_logger(), "Creating new object %s/%s", subject_name.c_str(),
               segment_name.c_str());
 
   boost::mutex::scoped_lock lock(segments_mutex_);
-  SegmentPublisher &spub =
+  SegmentPublisher& spub =
       segment_publishers_[subject_name + "/" + segment_name];
 
-  lock.unlock(); // we dont need the lock anymore
+  lock.unlock();  // we dont need the lock anymore
 
   // register the publisher
   spub.pub = this->create_publisher<geometry_msgs::msg::TransformStamped>(
@@ -152,17 +150,15 @@ void ViconBridge::create_segment_thread(const std::string subject_name,
 
 void ViconBridge::create_segment(const std::string subject,
                                  const std::string segment) {
-
   boost::thread(&ViconBridge::create_segment_thread, this, subject, segment);
 }
 
 void ViconBridge::timer_callback() {
-
   rclcpp::Rate rate(update_rate_hz_);
 
   while (client_.GetFrame().Result != Result::Success && rclcpp::ok()) {
-
     RCLCPP_INFO(get_logger(), "GetFrame returned false");
+    init_vicon();
     rate.sleep();
   }
 
@@ -171,8 +167,7 @@ void ViconBridge::timer_callback() {
   process_frame(now);
 }
 
-void ViconBridge::process_frame(rclcpp::Time &grab_time) {
-
+void ViconBridge::process_frame(rclcpp::Time& grab_time) {
   if (first_frame_) {
     first_frame_number_ = client_.GetFrameNumber().FrameNumber;
   }
@@ -208,7 +203,7 @@ void ViconBridge::process_frame(rclcpp::Time &grab_time) {
   double latency_s = client_.GetLatencyTotal().Total;
   rclcpp::Duration latency{std::chrono::duration<double>(latency_s)};
   RCLCPP_INFO_THROTTLE(get_logger(), *(this->get_clock()),
-                       1000, // 1000 ms = 1 second
+                       1000,  // 1000 ms = 1 second
                        "latency of last frame: %f s  [frame_count: %zu]",
                        latency_s, frame_count_);
 
@@ -224,9 +219,10 @@ void ViconBridge::process_frame(rclcpp::Time &grab_time) {
   return;
 }
 
-void ViconBridge::process_specific_segment(const rclcpp::Time &frame_time) {
+void ViconBridge::process_specific_segment(const rclcpp::Time& frame_time) {
   // RCLCPP_INFO(get_logger(), "Processing specific segment to:!");
-  // RCLCPP_INFO(get_logger(), "Creating new object %s/%s", target_subject_name_.c_str(),
+  // RCLCPP_INFO(get_logger(), "Creating new object %s/%s",
+  // target_subject_name_.c_str(),
   //           target_segment_name_.c_str());
   geometry_msgs::msg::TransformStamped transform;
   bool success = get_transform_msg(transform, frame_time, target_subject_name_,
@@ -234,14 +230,14 @@ void ViconBridge::process_specific_segment(const rclcpp::Time &frame_time) {
   SegmentMap::iterator pub_it;
   if (success) {
     tf_broadcaster_->sendTransform(transform);
-    
 
     // now find the specific publisher
     boost::mutex::scoped_try_lock lock(segments_mutex_);
     if (lock.owns_lock()) {
-      pub_it = segment_publishers_.find(target_subject_name_ + "/" + target_segment_name_);
+      pub_it = segment_publishers_.find(target_subject_name_ + "/" +
+                                        target_segment_name_);
       if (pub_it != segment_publishers_.end()) {
-        SegmentPublisher &spub = pub_it->second;
+        SegmentPublisher& spub = pub_it->second;
         if (spub.is_ready) {
           // publish the tranform msg
           spub.pub->publish(transform);
@@ -254,14 +250,13 @@ void ViconBridge::process_specific_segment(const rclcpp::Time &frame_time) {
         create_segment(target_subject_name_, target_segment_name_);
       }
     }
-    first_frame_ = false; // got a frame!
+    first_frame_ = false;  // got a frame!
   }
 
   return;
 }
 
-void ViconBridge::process_all_segments(const rclcpp::Time &frame_time) {
-
+void ViconBridge::process_all_segments(const rclcpp::Time& frame_time) {
   std::string subject_name, segment_name;
 
   std::size_t n_subjects = client_.GetSubjectCount().SubjectCount;
@@ -271,13 +266,11 @@ void ViconBridge::process_all_segments(const rclcpp::Time &frame_time) {
   std::vector<geometry_msgs::msg::TransformStamped> transforms;
 
   for (std::size_t i_subject = 0; i_subject < n_subjects; ++i_subject) {
-
     subject_name = client_.GetSubjectName(i_subject).SubjectName;
 
     std::size_t n_segments = client_.GetSegmentCount(subject_name).SegmentCount;
 
     for (std::size_t i_segment = 0; i_segment < n_segments; ++i_segment) {
-
       segment_name =
           client_.GetSegmentName(subject_name, i_segment).SegmentName;
 
@@ -293,7 +286,7 @@ void ViconBridge::process_all_segments(const rclcpp::Time &frame_time) {
         if (lock.owns_lock()) {
           pub_it = segment_publishers_.find(subject_name + "/" + segment_name);
           if (pub_it != segment_publishers_.end()) {
-            SegmentPublisher &spub = pub_it->second;
+            SegmentPublisher& spub = pub_it->second;
             if (spub.is_ready) {
               // publish the tranform msg
               spub.pub->publish(transform);
@@ -318,8 +311,7 @@ void ViconBridge::process_all_segments(const rclcpp::Time &frame_time) {
 }
 
 geometry_msgs::msg::PoseStamped ViconBridge::transform2pose(
-    geometry_msgs::msg::TransformStamped &transformMsg) {
-
+    geometry_msgs::msg::TransformStamped& transformMsg) {
   geometry_msgs::msg::PoseStamped poseMsg;
   poseMsg.header = transformMsg.header;
   poseMsg.pose.position.x = transformMsg.transform.translation.x;
@@ -330,11 +322,10 @@ geometry_msgs::msg::PoseStamped ViconBridge::transform2pose(
   return poseMsg;
 }
 
-bool ViconBridge::get_transform_msg(geometry_msgs::msg::TransformStamped &msg,
-                                    const rclcpp::Time &frame_time,
+bool ViconBridge::get_transform_msg(geometry_msgs::msg::TransformStamped& msg,
+                                    const rclcpp::Time& frame_time,
                                     std::string subject_name,
                                     std::string segment_name) {
-
   auto res_quat =
       client_.GetSegmentGlobalRotationQuaternion(subject_name, segment_name);
   auto res_trans =
@@ -372,10 +363,9 @@ bool ViconBridge::get_transform_msg(geometry_msgs::msg::TransformStamped &msg,
   return true;
 }
 
-} // namespace vicon_bridge
+}  // namespace vicon_bridge
 
-int main(int argc, char *argv[]) {
-
+int main(int argc, char* argv[]) {
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<vicon_bridge::ViconBridge>());
   rclcpp::shutdown();
