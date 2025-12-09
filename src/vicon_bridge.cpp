@@ -68,6 +68,7 @@ bool ViconBridge::init_vicon() {
   // connect
   RCLCPP_INFO(get_logger(), "Connecting to Vicon Datastream SDK at %s",
               host_name_.c_str());
+  client_.Disconnect();
   while (!client_.IsConnected().Connected) {
     client_.Connect(host_name_);
     RCLCPP_INFO(get_logger(), ".");
