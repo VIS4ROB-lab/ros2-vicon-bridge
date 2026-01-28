@@ -67,7 +67,7 @@ class ViconBridge : public rclcpp::Node {
   std::string target_subject_name_ = "";
   std::string target_segment_name_ = "";
   std::string world_frame_id_ = "world";
-  std::string tf_namespace_ = "";
+  std::string node_namespace_ = "";
 
   // vars
   Client client_;
