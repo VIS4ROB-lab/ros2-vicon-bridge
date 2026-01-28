@@ -7,12 +7,13 @@
 #include <string>
 
 // ROS2
+#include <diagnostic_updater/diagnostic_updater.hpp>
+#include <diagnostic_updater/publisher.hpp>
+
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "tf2_ros/transform_broadcaster.h"
-#include <diagnostic_updater/diagnostic_updater.hpp>
-#include <diagnostic_updater/publisher.hpp>
 
 // Boost
 #include <boost/shared_ptr.hpp>
@@ -26,37 +27,36 @@ namespace vicon_bridge {
 using namespace ViconDataStreamSDK::CPP;
 
 class SegmentPublisher {
-public:
+ public:
   rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr pub;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pub_poseMsg;
   bool is_ready = false;
 
-}; // class Segment Publisher;
+};  // class Segment Publisher;
 
 typedef std::map<std::string, SegmentPublisher> SegmentMap;
 
 class ViconBridge : public rclcpp::Node {
-
-public:
+ public:
   ViconBridge();
 
-private:
+ private:
   // functions
   bool init_vicon();
   void get_parameters();
   void timer_callback();
-  bool get_transform_msg(geometry_msgs::msg::TransformStamped &msg,
-                         const rclcpp::Time &now, std::string subjectName,
+  bool get_transform_msg(geometry_msgs::msg::TransformStamped& msg,
+                         const rclcpp::Time& now, std::string subjectName,
                          std::string segmentName);
   void print_drop_rate();
   void create_segment_thread(const std::string subject,
                              const std::string segment);
   void create_segment(const std::string subject, const std::string segment);
-  void process_frame(rclcpp::Time &grab_time);
-  void process_specific_segment(const rclcpp::Time &frame_time);
-  void process_all_segments(const rclcpp::Time &frame_time);
-  geometry_msgs::msg::PoseStamped
-  transform2pose(geometry_msgs::msg::TransformStamped &transformMsg);
+  void process_frame(rclcpp::Time& grab_time);
+  void process_specific_segment(const rclcpp::Time& frame_time);
+  void process_all_segments(const rclcpp::Time& frame_time);
+  geometry_msgs::msg::PoseStamped transform2pose(
+      geometry_msgs::msg::TransformStamped& transformMsg);
 
   // parameters
   std::string host_name_ = "192.168.1.164:801";
@@ -67,7 +67,7 @@ private:
   std::string target_subject_name_ = "";
   std::string target_segment_name_ = "";
   std::string world_frame_id_ = "world";
-  std::string tf_namespace_ = "vicon";
+  std::string tf_namespace_ = "";
 
   // vars
   Client client_;
@@ -88,8 +88,8 @@ private:
   double tolerance_ = 0.1;
   int window_ = 100;
 
-}; // class ViconBridge
+};  // class ViconBridge
 
-} // namespace vicon_bridge
+}  // namespace vicon_bridge
 
 #endif

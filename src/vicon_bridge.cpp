@@ -58,7 +58,6 @@ void ViconBridge::get_parameters() {
       this->declare_parameter<std::string>("world_frame_id", world_frame_id_);
   tf_namespace_ =
       this->declare_parameter<std::string>("tf_namespace", tf_namespace_);
-  std::cerr << "tf namespace: " << tf_namespace_ << std::endl;
   stream_mode_ =
       this->declare_parameter<std::string>("stream_mode", stream_mode_);
 }
@@ -141,11 +140,12 @@ void ViconBridge::create_segment_thread(const std::string subject_name,
 
   // register the publisher
   spub.pub = this->create_publisher<geometry_msgs::msg::TransformStamped>(
-      tf_namespace_ + "/" + subject_name + "/" + segment_name, 10);
+      tf_namespace_ + "/vicon/" + subject_name + "/" + segment_name, 10);
 
   // register the pose publisher
   spub.pub_poseMsg = this->create_publisher<geometry_msgs::msg::PoseStamped>(
-      tf_namespace_ + "/" + subject_name + "/" + segment_name + "/pose", 10);
+      tf_namespace_ + "/vicon/" + subject_name + "/" + segment_name + "/pose",
+      10);
 
   spub.is_ready = true;
 }
@@ -346,10 +346,10 @@ bool ViconBridge::get_transform_msg(geometry_msgs::msg::TransformStamped& msg,
     return false;
   }
 
-  msg.header.frame_id = (tf_namespace_ + "/" + world_frame_id_).c_str();
+  msg.header.frame_id = (tf_namespace_ + "/vicon/" + world_frame_id_).c_str();
   msg.header.stamp = frame_time;
   msg.child_frame_id =
-      (tf_namespace_ + "/" + subject_name + "/" + segment_name).c_str();
+      (tf_namespace_ + "/vicon/" + subject_name + "/" + segment_name).c_str();
 
   auto trans = res_trans.Translation;
   msg.transform.translation.x = trans[0] / 1000;
