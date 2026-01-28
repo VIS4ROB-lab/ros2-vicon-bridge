@@ -59,7 +59,7 @@ void ViconBridge::get_parameters() {
   tf_namespace_ =
       this->declare_parameter<std::string>("tf_namespace", tf_namespace_);
   std::cerr << "tf namespace: " << tf_namespace_ << std::endl;
-  ` stream_mode_ =
+  stream_mode_ =
       this->declare_parameter<std::string>("stream_mode", stream_mode_);
 }
 
